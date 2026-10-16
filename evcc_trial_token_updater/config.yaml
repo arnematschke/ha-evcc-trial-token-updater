@@ -1,21 +1,18 @@
 name: EVCC Trial Token Updater
-version: "1.0.0"
+version: "0.1.0"
 slug: evcc_trial_token_updater
-description: Aktualisiert automatisch das EVCC Trial Token
+description: Aktualisiert den EVCC Trial Sponsor Token automatisch
+url: https://github.com/arnematschke/ha-evcc-trial-token-updater
 startup: services
 boot: auto
 init: false
-
-hassio_api: true
-homeassistant_api: false
-
 arch:
   - amd64
   - aarch64
   - armv7
-
+  - armhf
+  - i386
 options:
-  addon_slug: core_evcc
-
+  update_interval: 24
 schema:
-  addon_slug: str
+  update_interval: int(1,168)
