@@ -1,14 +1,9 @@
-FROM alpine:3.22
+ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:latest
+FROM ${BUILD_FROM}
 
-RUN apk add --no-cache \
-    bash \
-    curl \
-    jq
+RUN apk add --no-cache bash curl jq
 
-COPY run.sh /run.sh
-COPY rootfs /
-
-RUN chmod +x /run.sh
-RUN chmod +x /usr/bin/update-token.sh
+COPY run.sh /
+RUN chmod a+x /run.sh
 
 CMD [ "/run.sh" ]
