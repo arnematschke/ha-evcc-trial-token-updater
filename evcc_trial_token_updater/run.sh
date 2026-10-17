@@ -24,18 +24,41 @@ get_interval() {
     fi
 }
 
+evcc_is_started() {
+    local response state
+
+    response=$(curl -fsS --max-time 8 \
+        -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
+        "http://supervisor/addons/${EVCC_SLUG}/info" 2>/dev/null) || return 1
+
+    state=$(printf '%s' "$response" |
+        jq -r '.data.state // empty' 2>/dev/null) || return 1
+
+    [ "$state" = "started" ]
+}
+
 restart_evcc() {
     echo "Fordere Neustart der EVCC-App an ..."
-    if curl -fsS --max-time 30 -o /dev/null -X POST \
+
+    if curl -fsS --max-time 10 -o /dev/null -X POST \
         -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
         "http://supervisor/addons/${EVCC_SLUG}/restart"; then
-        echo "EVCC-Neustart erfolgreich angefordert."
+        echo "EVCC-Neustart vom Supervisor bestätigt."
         rm -f "$PENDING_FILE"
         return 0
     fi
 
-    echo "WARNUNG: EVCC-Neustart fehlgeschlagen."
-    echo "Der Neustart wird beim nächsten Durchlauf erneut versucht."
+    echo "Keine rechtzeitige Antwort auf die Neustartanforderung."
+    echo "Prüfe den tatsächlichen Status der EVCC-App ..."
+
+    if evcc_is_started; then
+        echo "EVCC läuft. Es wird kein weiterer Neustart angefordert."
+        rm -f "$PENDING_FILE"
+        return 0
+    fi
+
+    echo "WARNUNG: EVCC läuft nicht nachweislich."
+    echo "Der Neustartvermerk bleibt für einen späteren Versuch bestehen."
     return 1
 }
 
