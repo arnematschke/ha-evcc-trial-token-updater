@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/command/with-contenv bash
 set -uo pipefail
 
 echo "=========================================="
