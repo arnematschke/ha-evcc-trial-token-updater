@@ -2,6 +2,15 @@
 
 Alle wesentlichen Änderungen am EVCC Trial Token Updater werden hier dokumentiert.
 
+## [0.6.3] – 2026-10-17
+
+### Verbesserungen
+- Neustartbehandlung überarbeitet, um Timeouts der Supervisor-API korrekt zu behandeln.
+- EVCC-Status nach der Neustartanforderung wiederholt prüfen.
+- Neustartvermerk erst entfernen, wenn EVCC wieder als gestartet erkannt wird.
+- Prüfzeitraum für den EVCC-Neustart auf bis zu 90 Sekunden erweitert.
+- Fehlgeschlagene Statusprüfungen führen nicht mehr unmittelbar zu einem endgültigen Neustartfehler.
+
 ## [0.6.2] – 2026-10-17
 
 ### Entfernt
