@@ -97,4 +97,15 @@ else
     echo "Vergleich: Lokaler und Online-Token unterscheiden sich"
 fi
 
+# Schreibzugriff testen, ohne die EVCC-Konfiguration zu verändern
+TEST_FILE="/addon_configs/49686a9f_evcc/.evcc_token_updater_write_test"
+
+if touch "$TEST_FILE" 2>/dev/null; then
+    echo "Schreibtest: erfolgreich"
+    rm -f "$TEST_FILE"
+    echo "Testdatei: wieder entfernt"
+else
+    echo "Schreibtest: fehlgeschlagen"
+fi
+
 echo "Diagnose abgeschlossen. Keine Datei wurde verändert."
