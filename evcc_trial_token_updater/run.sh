@@ -43,21 +43,30 @@ restart_evcc() {
     if curl -fsS --max-time 10 -o /dev/null -X POST \
         -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
         "http://supervisor/addons/${EVCC_SLUG}/restart"; then
-        echo "EVCC-Neustart vom Supervisor bestätigt."
-        rm -f "$PENDING_FILE"
-        return 0
+        echo "Neustartanforderung vom Supervisor beantwortet."
+    else
+        echo "Keine rechtzeitige Antwort auf die Neustartanforderung."
+        echo "Der Neustart kann trotzdem ausgelöst worden sein."
     fi
 
-    echo "Keine rechtzeitige Antwort auf die Neustartanforderung."
-    echo "Prüfe den tatsächlichen Status der EVCC-App ..."
+    echo "Warte auf EVCC und prüfe den Status ..."
+    sleep 5
 
-    if evcc_is_started; then
-        echo "EVCC läuft. Es wird kein weiterer Neustart angefordert."
-        rm -f "$PENDING_FILE"
-        return 0
-    fi
+    local attempt
+    for attempt in {1..18}; do
+        if evcc_is_started; then
+            echo "EVCC läuft wieder."
+            rm -f "$PENDING_FILE"
+            echo "Offenen Neustartvermerk entfernt."
+            return 0
+        fi
 
-    echo "WARNUNG: EVCC läuft nicht nachweislich."
+        echo "EVCC noch nicht als gestartet erkannt (${attempt}/18)."
+        sleep 5
+    done
+
+    echo "WARNUNG: EVCC wurde innerhalb des Prüfzeitraums"
+    echo "nicht als gestartet erkannt."
     echo "Der Neustartvermerk bleibt für einen späteren Versuch bestehen."
     return 1
 }
