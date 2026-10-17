@@ -1,5 +1,5 @@
 name: EVCC Trial Token Updater
-version: "0.6.1"
+version: "0.6.2"
 slug: evcc_trial_token_updater
 description: Aktualisiert den EVCC Trial Sponsor Token automatisch
 url: https://github.com/arnematschke/ha-evcc-trial-token-updater
