@@ -1,10 +1,10 @@
 name: EVCC Trial Token Updater
-version: "0.4.1"
+version: "0.5.0"
 slug: evcc_trial_token_updater
-description: Liest EVCC-Konfiguration und prüft den Sponsor-Token
+description: Aktualisiert den EVCC Trial Sponsor Token automatisch
 url: https://github.com/arnematschke/ha-evcc-trial-token-updater
 startup: services
-boot: manual
+boot: auto
 init: false
 arch:
   - amd64
@@ -14,5 +14,7 @@ map:
     read_only: false
 hassio_api: true
 hassio_role: manager
-options: {}
-schema: {}
+options:
+  update_interval: 24
+schema:
+  update_interval: int(1,168)
