@@ -11,7 +11,7 @@ arch:
   - aarch64
 map:
   - type: all_addon_configs
-    read_only: true
+    read_only: false
 hassio_api: true
 hassio_role: manager
 options: {}
