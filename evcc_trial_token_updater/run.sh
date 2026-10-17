@@ -1,80 +1,68 @@
+
 #!/command/with-contenv bash
 set -uo pipefail
 
-echo "=========================================="
-echo " EVCC Token Diagnose"
-echo "=========================================="
-
+DOC_URL="https://docs.evcc.io/de/sponsorship/"
 CONFIG_FILE="/addon_configs/49686a9f_evcc/evcc.yaml"
 
-# EVCC-App über die Supervisor-API finden
-if [ -z "${SUPERVISOR_TOKEN:-}" ]; then
-    echo "FEHLER: SUPERVISOR_TOKEN ist nicht verfügbar."
-    exit 1
-fi
-
-ADDONS_JSON=$(curl -fsS \
-    -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
-    http://supervisor/addons) || {
-    echo "FEHLER: Supervisor-API nicht erreichbar."
-    exit 1
-}
-
-EVCC_SLUG=$(echo "$ADDONS_JSON" | jq -r '
-    [.data.addons[]?
-     | select(
-         ((.slug // "") | ascii_downcase | contains("evcc"))
-         or
-         ((.name // "") | ascii_downcase | contains("evcc"))
-       )]
-    | first | .slug // empty
-')
-
-if [ -z "$EVCC_SLUG" ]; then
-    echo "FEHLER: EVCC-App wurde nicht gefunden."
-    exit 1
-fi
-
-echo "EVCC-App-Slug: $EVCC_SLUG"
-
-# Konfiguration aus den EVCC-App-Einstellungen lesen
-INFO_JSON=$(curl -fsS \
-    -H "Authorization: Bearer ${SUPERVISOR_TOKEN}" \
-    "http://supervisor/addons/${EVCC_SLUG}/info") || {
-    echo "FEHLER: EVCC-Einstellungen konnten nicht gelesen werden."
-    exit 1
-}
-
-CONFIG_VALUE=$(echo "$INFO_JSON" | jq -r '
-    .data.options.config_file
-    // .data.config_file
-    // empty
-')
-
-echo "EVCC config_file: ${CONFIG_VALUE:-NICHT AUSLESBAR}"
-
-# Vorhandensein und maskierten Wert des Tokens prüfen
-if [ ! -r "$CONFIG_FILE" ]; then
-    echo "FEHLER: Datei nicht lesbar: $CONFIG_FILE"
-    exit 1
-fi
-
-TOKEN=$(grep -m1 -E \
-    '^[[:space:]]*sponsortoken[[:space:]]*:' \
-    "$CONFIG_FILE" |
-    sed -E \
-    's/^[[:space:]]*sponsortoken[[:space:]]*:[[:space:]]*//; s/^["'\'']?//; s/["'\'']?$//')
-
-if [ -z "$TOKEN" ]; then
-    echo "Sponsor-Token: NICHT GEFUNDEN oder LEER"
-else
-    TOKEN_LENGTH=${#TOKEN}
-    if [ "$TOKEN_LENGTH" -gt 8 ]; then
-        echo "Sponsor-Token: ${TOKEN:0:4}****${TOKEN: -4}"
+mask_token() {
+    local token="$1"
+    if [ "${#token}" -gt 8 ]; then
+        printf '%s****%s' "${token:0:4}" "${token: -4}"
     else
-        echo "Sponsor-Token: vorhanden (Wert maskiert)"
+        printf '[maskiert]'
     fi
-    echo "Token-Länge: $TOKEN_LENGTH Zeichen"
+}
+
+echo "=========================================="
+echo " EVCC Trial Token Diagnose"
+echo "=========================================="
+
+# Aktuellen Token aus der lokalen Konfiguration lesen
+FILE_TOKEN=""
+if [ -r "$CONFIG_FILE" ]; then
+    FILE_TOKEN=$(sed -nE \
+        's/^[[:space:]]*sponsortoken:[[:space:]]*["'\'']?([^"'\'']+).*$/\1/p' \
+        "$CONFIG_FILE" | sed -n '1p')
+
+    if [ -n "$FILE_TOKEN" ]; then
+        echo "Lokaler Token: $(mask_token "$FILE_TOKEN")"
+        echo "Lokale Token-Länge: ${#FILE_TOKEN}"
+    else
+        echo "Lokaler Token: nicht gefunden oder leer"
+    fi
+else
+    echo "FEHLER: Konfigurationsdatei nicht lesbar"
+    exit 1
 fi
 
-echo "Diagnose abgeschlossen."
+# Aktuellen Test-Token aus der offiziellen Dokumentation abrufen
+echo "Rufe offizielle EVCC-Dokumentation ab ..."
+
+PAGE=$(curl -fsSL --max-time 30 "$DOC_URL") || {
+    echo "FEHLER: Dokumentation konnte nicht abgerufen werden"
+    exit 1
+}
+
+TRIAL_TOKEN=$(printf '%s' "$PAGE" |
+    grep -oE 'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}' |
+    sed -n '1p')
+
+unset PAGE
+
+if [ -z "$TRIAL_TOKEN" ]; then
+    echo "FEHLER: Kein JWT-Testtoken auf der Dokumentationsseite erkannt"
+    echo "Möglicherweise wurde das Format der Seite geändert."
+    exit 1
+fi
+
+echo "Online-Testtoken: $(mask_token "$TRIAL_TOKEN")"
+echo "Online-Token-Länge: ${#TRIAL_TOKEN}"
+
+if [ "$FILE_TOKEN" = "$TRIAL_TOKEN" ]; then
+    echo "Vergleich: Lokaler und Online-Token sind identisch"
+else
+    echo "Vergleich: Lokaler und Online-Token unterscheiden sich"
+fi
+
+echo "Diagnose abgeschlossen. Keine Datei wurde verändert."
