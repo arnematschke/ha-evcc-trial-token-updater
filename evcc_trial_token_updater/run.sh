@@ -69,10 +69,16 @@ update_once() {
     echo "=========================================="
     date -u '+Zeitpunkt: %Y-%m-%d %H:%M:%S UTC'
 
-    if [ -f "$PENDING_FILE" ]; then
-        echo "Ein vorheriger Neustart steht noch aus."
+if [ -f "$PENDING_FILE" ]; then
+    echo "Ein vorheriger Neustart steht noch aus."
+
+    if evcc_is_started; then
+        echo "EVCC läuft bereits. Kein erneuter Neustart erforderlich."
+        rm -f "$PENDING_FILE"
+    else
         restart_evcc || return 1
     fi
+fi
 
     if [ ! -r "$CONFIG_FILE" ] || [ ! -w "$CONFIG_FILE" ]; then
         echo "FEHLER: EVCC-Konfiguration nicht les- und schreibbar."
