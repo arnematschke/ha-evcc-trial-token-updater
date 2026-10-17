@@ -59,6 +59,38 @@ fi
 echo "Online-Testtoken: $(mask_token "$TRIAL_TOKEN")"
 echo "Online-Token-Länge: ${#TRIAL_TOKEN}"
 
+# Ablaufdatum aus dem JWT-Payload lesen
+PAYLOAD=$(printf '%s' "$TRIAL_TOKEN" | cut -d. -f2 | tr '_-' '/+')
+
+case $((${#PAYLOAD} % 4)) in
+    2) PAYLOAD="${PAYLOAD}==" ;;
+    3) PAYLOAD="${PAYLOAD}=" ;;
+    1)
+        echo "FEHLER: JWT-Payload ist ungültig"
+        exit 1
+        ;;
+esac
+
+TOKEN_EXP=$(printf '%s' "$PAYLOAD" |
+    base64 -d 2>/dev/null |
+    jq -r '.exp // empty') || true
+
+if ! [[ "$TOKEN_EXP" =~ ^[0-9]+$ ]]; then
+    echo "FEHLER: Ablaufdatum konnte nicht gelesen werden"
+    exit 1
+fi
+
+NOW=$(date +%s)
+echo "Token gültig bis: $(date -u -d "@$TOKEN_EXP" '+%Y-%m-%d %H:%M:%S UTC')"
+
+if [ "$TOKEN_EXP" -le "$NOW" ]; then
+    echo "WARNUNG: Online-Token ist bereits abgelaufen."
+    echo "Keine Aktualisierung durchführen."
+    exit 1
+fi
+
+echo "Ablaufprüfung: Token ist noch gültig."
+
 if [ "$FILE_TOKEN" = "$TRIAL_TOKEN" ]; then
     echo "Vergleich: Lokaler und Online-Token sind identisch"
 else
